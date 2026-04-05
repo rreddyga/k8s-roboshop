@@ -1,0 +1,66 @@
+#Deploymen is a higher level abstraction that manages ReplicaSets and provides declarative updates to applications.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalogue-config
+  namespace: roboshop
+data:
+  MONGO: "true"
+  MONGO_URL: "mongodb://mongodb:27017/catalogue"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalogue
+  namespace: roboshop
+  #these are required labels for replicaset to identify the pods it manages. 
+  #These labels should match the labels defined in the pod template.
+  labels:
+    project: roboshop
+    component: catalogue
+    environment: dev
+
+spec:
+  replicas: 1 #number of pod replicas to be maintained
+  selector:
+    #using these labels the replicaset will identify the pods it manages.
+    matchLabels:
+      project: roboshop
+      component: catalogue
+      environment: dev
+  #This is the pod template which defines the pod specification. 
+  #The deployment will create pods based on this template.
+  template:
+    metadata:
+      labels:
+        project: roboshop
+        component: catalogue
+        environment: dev
+    spec:
+      containers:
+      - name: catalogue
+        image: rreddygang/catalogue:1.0.0
+        envFrom:
+        - configMapRef:
+            name: catalogue-config # configmap name referenced in the 1st line of this file
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalogue
+  namespace: roboshop
+  labels:
+    project: roboshop
+    component: catalogue
+    environment: dev
+spec:
+  selector:
+    #by default the service type is ClusterIP. It exposes the service on a cluster-internal IP.
+    #label are used as a selectors to select the pods which are running nginx.
+    project: roboshop
+    component: catalogue
+    environment: dev
+  ports:
+  - protocol: TCP
+    port: 8080 # service port
+    targetPort: 8080 # container port
