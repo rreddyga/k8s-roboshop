@@ -35,7 +35,7 @@ spec:
     metadata:
       labels:
         project: roboshop
-        component: cart
+        component: user
         environment: dev
     spec:
       containers:
