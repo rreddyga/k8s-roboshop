@@ -1,0 +1,106 @@
+#Deploymen is a higher level abstraction that manages ReplicaSets and provides declarative updates to applications.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shipping-config
+  namespace: roboshop
+data:
+  CART_ENDPOINT: "http://cart:8080"
+  DB_HOST: "mysql"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shipping
+  namespace: roboshop
+  #these are required labels for replicaset to identify the pods it manages. 
+  #These labels should match the labels defined in the pod template.
+  labels:
+    project: roboshop
+    component: shipping
+    environment: dev
+
+spec:
+  replicas: 1 #number of pod replicas to be maintained
+  selector:
+    #using these labels the replicaset will identify the pods it manages.
+    matchLabels:
+      project: roboshop
+      component: shipping
+      environment: dev
+  #This is the pod template which defines the pod specification. 
+  #The deployment will create pods based on this template.
+  template:
+    metadata:
+      labels:
+        project: roboshop
+        component: shipping
+        environment: dev
+    spec:
+      containers:
+      - name: shipping
+        image: rreddygang/shipping:1.4.0
+        #imagepullpolicy is used to specify when to pull the image.
+        imagePullPolicy: Always
+        # Define resource limits and requests for the container
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+        #readinessProbe is used to check if the application is ready to serve traffic. 
+        #It checks the TCP socket on port 8080. If the application is not ready, 
+        #it will not receive traffic from the service.
+        readinessProbe:
+          # Checks the TCP socket on port 8080 to determine if the application is ready to serve traffic.
+          #httpGet:
+          #    path: /health
+          #    port: 8080
+          tcpSocket:
+            port: 8080
+          failureThreshold: 2
+          periodSeconds: 10
+          #initialDelaySeconds is the time to wait before starting the readiness probe.
+          initialDelaySeconds: 15
+        #livenessProbe is used to check if the application is alive.
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          failureThreshold: 2
+          periodSeconds: 10
+        #startup probe is used to check if the application has started. 
+        #It is used to check if the application has started successfully. 
+        #If the application has not started, it will not receive traffic from the service.
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          failureThreshold: 20
+          periodSeconds: 10
+        envFrom:
+        - configMapRef:
+            name: shipping-config # configmap name referenced in the 1st line of this file
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shipping
+  namespace: roboshop
+  labels:
+    project: roboshop
+    component: shipping
+    environment: dev
+spec:
+  selector:
+    #by default the service type is ClusterIP. It exposes the service on a cluster-internal IP.
+    #label are used as a selectors to select the pods which are running nginx.
+    project: roboshop
+    component: shipping
+    environment: dev
+  ports:
+  - protocol: TCP
+    port: 8080 # service port
+    targetPort: 8080 # container port
