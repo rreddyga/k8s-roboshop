@@ -1,0 +1,112 @@
+#Deploymen is a higher level abstraction that manages ReplicaSets and provides declarative updates to applications.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-config
+  namespace: roboshop
+data:
+  CART_HOST: "cart"
+  CART_PORT: "8080"
+  USER_HOST: "user"
+  USER_PORT: "8080"
+  AMQP_HOST: "rabbitmq"
+  AMQP_USER: "roboshop"
+  AMQP_PASS: "roboshop123"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+  namespace: roboshop
+  #these are required labels for replicaset to identify the pods it manages. 
+  #These labels should match the labels defined in the pod template.
+  labels:
+    project: roboshop
+    component: payment
+    environment: dev
+
+spec:
+  replicas: 1 #number of pod replicas to be maintained
+  selector:
+    #using these labels the replicaset will identify the pods it manages.
+    matchLabels:
+      project: roboshop
+      component: payment
+      environment: dev
+  #This is the pod template which defines the pod specification. 
+  #The deployment will create pods based on this template.
+  template:
+    metadata:
+      labels:
+        project: roboshop
+        component: payment
+        environment: dev
+    spec:
+      containers:
+      - name: payment
+        image: rreddygang/payment:1.4.0
+        #imagepullpolicy is used to specify when to pull the image.
+        imagePullPolicy: Always
+        # Define resource limits and requests for the container
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+        #readinessProbe is used to check if the application is ready to serve traffic. 
+        #It checks the TCP socket on port 8080. If the application is not ready, 
+        #it will not receive traffic from the service.
+        readinessProbe:
+          # Checks the TCP socket on port 8080 to determine if the application is ready to serve traffic.
+          tcpSocket:
+            port: 8080
+          failureThreshold: 2
+          periodSeconds: 10
+          #initialDelaySeconds is the time to wait before starting the readiness probe.
+          initialDelaySeconds: 15
+        #livenessProbe is used to check if the application is alive.
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          failureThreshold: 2
+          periodSeconds: 10
+        envFrom:
+        - configMapRef:
+            name: payment-config # configmap name referenced in the 1st line of this file
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+  namespace: roboshop
+  labels:
+    project: roboshop
+    component: payment
+    environment: dev
+spec:
+  selector:
+    #by default the service type is ClusterIP. It exposes the service on a cluster-internal IP.
+    #label are used as a selectors to select the pods which are running nginx.
+    project: roboshop
+    component: payment
+    environment: dev
+  ports:
+  - protocol: TCP
+    port: 8080 # service port
+    targetPort: 8080 # container port
+
+#kubens installation is required to switch between namespaces.
+#after installing kubens, run the command kubens roboshop to switch to the roboshop namespace.
+# run this command-> kubens roboshop
+#if you want to switch to default namespace, run the command-> kubens default
+
+#install k9s to monitor the resources in the namespace. 
+#It is a terminal based UI to manage Kubernetes clusters. 
+#It provides a graphical interface to view and manage the resources in the cluster. 
+#It also provides a way to view the logs of the pods and execute commands in the pods.
+#curl -sS https://webinstall.dev/k9s | bash
+# run k9s command to view the resources in the cluster.
+#shift + : to view the namespaces and switch between namespaces.
