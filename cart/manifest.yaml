@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
       - name: cart
-        image: rreddygang/cart:1.0.0
+        image: rreddygang/cart:1.4.0
         envFrom:
         - configMapRef:
             name: cart-config # configmap name referenced in the 1st line of this file
