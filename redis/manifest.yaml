@@ -1,0 +1,55 @@
+#Deploymen is a higher level abstraction that manages ReplicaSets and provides declarative updates to applications.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: roboshop
+  #these are required labels for replicaset to identify the pods it manages. 
+  #These labels should match the labels defined in the pod template.
+  labels:
+    project: roboshop
+    component: redis
+    environment: dev
+
+spec:
+  replicas: 1 #number of pod replicas to be maintained
+  selector:
+    #using these labels the replicaset will identify the pods it manages.
+    matchLabels:
+      project: roboshop
+      component: redis
+      environment: dev
+  #This is the pod template which defines the pod specification. 
+  #The deployment will create pods based on this template.
+  template:
+    metadata:
+      labels:
+        project: roboshop
+        component: redis
+        environment: dev
+    spec:
+      containers:
+      - name: redis
+        image: rreddygang/redis:7.0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: roboshop
+  labels:
+    project: roboshop
+    component: redis
+    environment: dev
+spec:
+  selector:
+    #by default the service type is ClusterIP. It exposes the service on a cluster-internal IP.
+    #label are used as a selectors to select the pods which are running nginx.
+    project: roboshop
+    component: redis
+    environment: dev
+  ports:
+  - protocol: TCP
+    port: 5679 # service port
+    targetPort: 5679 # container port
