@@ -44,7 +44,7 @@ spec:
     spec:
       containers:
       - name: payment
-        image: rreddygang/payment:1.4.0
+        image: rreddygang/payment:1.4.1
         #imagepullpolicy is used to specify when to pull the image.
         imagePullPolicy: Always
         # Define resource limits and requests for the container
