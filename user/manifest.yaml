@@ -41,6 +41,34 @@ spec:
       containers:
       - name: user
         image: rreddygang/user:1.4.0
+        #imagepullpolicy is used to specify when to pull the image.
+        imagePullPolicy: Always
+        # Define resource limits and requests for the container
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+        #readinessProbe is used to check if the application is ready to serve traffic. 
+        #It checks the TCP socket on port 8080. If the application is not ready, 
+        #it will not receive traffic from the service.
+        readinessProbe:
+          # Checks the TCP socket on port 8080 to determine if the application is ready to serve traffic.
+          tcpSocket:
+            port: 8080
+          failureThreshold: 2
+          periodSeconds: 10
+          #initialDelaySeconds is the time to wait before starting the readiness probe.
+          initialDelaySeconds: 15
+        #livenessProbe is used to check if the application is alive.
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          failureThreshold: 2
+          periodSeconds: 10
         envFrom:
         - configMapRef:
             name: user-config # configmap name referenced in the 1st line of this file
