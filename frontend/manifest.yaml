@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: rreddygang/frontend:1.4.0
+        image: rreddygang/frontend:1.4.2
         #imagepullpolicy is used to specify when to pull the image.
         imagePullPolicy: Always
         # Define resource limits and requests for the container
