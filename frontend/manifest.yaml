@@ -69,6 +69,7 @@ metadata:
     component: frontend
     environment: dev
 spec:
+  type: LoadBalancer
   selector:
     #by default the service type is ClusterIP. It exposes the service on a cluster-internal IP.
     #label are used as a selectors to select the pods which are running nginx.
